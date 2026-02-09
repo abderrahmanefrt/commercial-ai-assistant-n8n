@@ -1,0 +1,261 @@
+{
+  "name": "Assistant Commercial Intelligent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Tu es un assistant commercial. Ton rôle est d'analyser le message du client et d'extraire : le produit, la ville, et le numéro de téléphone. Si une info manque, demande-la poliment. Réponds toujours en français\nRéponds EXCLUSIVEMENT en JSON pur. Supprime les balises json et . Ne rajoute aucun texte avant ou après. Ton message doit commencer par { et finir par }."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "d63e04cb-f8ce-483d-9a27-f55d4553fa39",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        192,
+        176
+      ],
+      "id": "8992283a-b087-4f9d-8dd7-f6b987598437",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "dgUem9TM7DJwp5AJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Jnils6R2JBgzctZ-hefRGUxO6Sih270m5v-AVE91UkQ/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Jnils6R2JBgzctZ-hefRGUxO6Sih270m5v-AVE91UkQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $('Telegram Trigger').item.json.message.date }}",
+            "Client": "={{ $('Telegram Trigger').item.json.message.from.first_name }}",
+            "Ville": "={{ $json.ville }}",
+            "Produit": "={{ $json.produit }}",
+            "Téléphone": "={{ $json.telephone }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client",
+              "displayName": "Client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Produit",
+              "displayName": "Produit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ville",
+              "displayName": "Ville",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Téléphone",
+              "displayName": "Téléphone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        0
+      ],
+      "id": "b728e71d-59eb-4eed-b519-41ae9d8d8cb5",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pJleoFzo22iA3WDa",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1731767147",
+        "text": "Ok merci votre commande est enregistrer",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        976,
+        128
+      ],
+      "id": "48a997bc-624c-4f80-a659-50b9a0603743",
+      "name": "Send a text message",
+      "webhookId": "ca0a0e32-f0ad-4bf5-a971-4b9b0980afe4",
+      "credentials": {
+        "telegramApi": {
+          "id": "01nPpdwtbFGzx45Y",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cc229f39-5e51-46e1-8cfa-0b1d8590914c",
+      "name": "Telegram Trigger",
+      "webhookId": "ad0c0778-394e-4a87-9dae-2fc36a6fb7ae",
+      "credentials": {
+        "telegramApi": {
+          "id": "01nPpdwtbFGzx45Y",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupération de la réponse brute de l'IA\n// On utilise l'expression n8n pour cibler la sortie de ton nœud AI Agent\nlet rawResponse = $node[\"AI Agent\"].json[\"output\"];\n\n// NETTOYAGE : Supprime les balises ```json, ``` et les espaces inutiles\n// car Gemini a tendance à entourer son code de ces symboles.\nlet cleanJson = rawResponse.replace(/```json|```/gi, \"\").trim();\n\ntry {\n  // TRANSFORMATION : On transforme le texte en un objet de données utilisable\n  let data = JSON.parse(cleanJson);\n  \n  // On retourne les données pour que le Google Sheets puisse les lire\n  return data;\n} catch (error) {\n  // SÉCURITÉ : Si l'IA n'envoie pas de JSON (ex: elle pose une question),\n  // on renvoie un objet simple pour ne pas faire planter tout le système.\n  return {\n    produit: \"Erreur de format\",\n    ville: \"Erreur de format\",\n    telephone: \"Non détecté\",\n    brut: rawResponse\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "b08994d2-116d-4853-9e3b-9df3beede92a",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "bfe4e50c-1e3f-4b8d-825f-2ba63c42578c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ecf386b5f3c6eb67330f4546bfa26e4a905b94c24eb2190c4d72e25cef084210"
+  },
+  "id": "GD-zHfvDQdBWTy9af2DEu",
+  "tags": []
+}
